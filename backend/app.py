@@ -1,13 +1,12 @@
 from typing import Union
 from fastapi import FastAPI, Request, Body
-from ai.utils import cosine_similarity, lex_response
+from ai.utils import cosine_similarity, lex_response, syno_response
 from sentence_transformers import SentenceTransformer
 import os
 import psycopg2
 import numpy as np
 from dotenv import load_dotenv
 import ast
-from transformers import pipeline
 
 load_dotenv()
 
@@ -19,7 +18,7 @@ DB_NAME = os.getenv('DB_NAME')
 
 # Load models
 embedder = SentenceTransformer('./ai/embedding/artifacts/fine_tuned_book_embedder')
-lex = pipeline("text2text-generation", model="./ai/lex_model", device=-1)
+lex_path = "./ai/lex_model"
 
 # Retrieval of all book data
 conn = psycopg2.connect(
@@ -64,11 +63,12 @@ def search_query(data: dict = Body(...)):
             "title": titles[idx],
             "author": authors[idx],
             "summary": summaries[idx],
+            "scores": float(scores[idx])
         })
     explanations = []
     if use_lex:
         indices = top_idx[:5]
-        explanations = lex_response(lex, user_query, titles, authors, summaries, indices)
+        explanations = lex_response(lex_path, user_query, titles, authors, summaries, indices)
         for i, idx in enumerate(indices):
             pos = list(top_idx).index(idx)
             results[pos]["explanation"] = explanations[i]
@@ -81,7 +81,7 @@ def get_explanations(data: dict = Body(...)):
     start = data["start"]
     end = data["end"]
     indices = top_idx[start:end]
-    explanations = lex_response(lex, user_query, titles, authors, summaries, indices)
+    explanations = lex_response(lex_path, user_query, titles, authors, summaries, indices)
     results = []
     for i, idx in enumerate(indices):
         results.append({
@@ -91,4 +91,13 @@ def get_explanations(data: dict = Body(...)):
             "explanation": explanations[i]
         })
     return {"results": results}
-    
+
+@app.post('/synopsis')
+def get_synopsis(data: dict = Body(...)):
+    book_id = data["book_id"]
+    with conn.cursor() as cur:
+        cur.execute("SELECT title, author, summary FROM books WHERE id = %s;", (book_id,))
+        row = cur.fetchone()
+        title, author, summary = row
+    synopsis = syno_response(lex_path, title, author, summary)
+    return {"synopsis": synopsis}

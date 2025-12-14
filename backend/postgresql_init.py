@@ -71,7 +71,7 @@ try:
         cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS books (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY,
                 title TEXT,
                 author TEXT,
                 pub_date DATE,
@@ -97,7 +97,7 @@ try:
                     genres_json = None
             
             data_to_insert.append((
-                row.get('title'), row.get('author'), pub_date, genres_json,
+                int(row.get('id')), row.get('title'), row.get('author'), pub_date, genres_json,
                 row.get('summary'), row.get('cover_image_url'), embedding.tolist()
             ))
 
@@ -105,7 +105,7 @@ try:
         execute_values(
             cur,
             """
-            INSERT INTO books (title, author, pub_date, genres, summary, cover_image_url, embedding)
+            INSERT INTO books (id, title, author, pub_date, genres, summary, cover_image_url, embedding)
             VALUES %s
             """,
             data_to_insert

@@ -113,6 +113,33 @@ try:
         conn.commit()
     
     print("Data insertion complete.")
+    
+    with conn.cursor() as cur:
+        print('Creating users table.')
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                fullname TEXT,   
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP        
+            )
+        """)
+        
+        print('Creating user_books table.')
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_books (
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                book_id INTEGER REFERENCES books(id) ON DELETE CASCADE,
+                status TEXT CHECK (status IN ('read', 'reading', 'plan_to_read', 'no_plan_to_read')),
+                rating INTEGER CHECK (rating >= 0 AND rating <= 10),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, book_id)
+            )
+        """)
+        conn.commit()
+        print("Tables Created.")
 
 except psycopg2.Error as e:
     print(f"Database error: {e}")

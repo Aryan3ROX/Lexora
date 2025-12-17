@@ -1,2 +1,19 @@
 backend/ai/tokenization
 .env
+node_modules
+*.pyc
+
+# Ignore all Nginx binaries and default folders
+backend/nginx/logs/
+backend/nginx/temp/
+backend/nginx/html/
+backend/nginx/contrib/
+backend/nginx/docs/
+backend/nginx/nginx.exe
+backend/nginx/nginx.conf
+backend/nginx/*.dll
+backend/nginx/*.pdb
+
+# Ignore all conf files except nginx.conf
+backend/nginx/conf/*
+!backend/nginx/conf/nginx.conf

@@ -29,7 +29,7 @@ def syno_response(generator_path, title, author, summary):
     prompt = (
         f'Based on the summary, give a short, spoiler-free overview (max 60 words) of what a reader will experience when reading "{title}" by {author}. Highlight the tone, themes, or style, but avoid revealing specific plot details.\nSummary: {summary}'
     )
-    generator = pipeline("text2text-generation", model=generator_path, device=-1)
+    generator = pipeline("text2text-generation", model=generator_path, device='cpu')
     result = generator(prompt, max_new_tokens=512)
     synopsis = result[0]['generated_text'].strip()
     return synopsis

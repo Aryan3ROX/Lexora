@@ -1,6 +1,6 @@
 from typing import Union
 from fastapi import FastAPI, Request, Body
-from ai.utils import cosine_similarity, lex_response, syno_response, get_search_vectors, rexy_response
+from utils import cosine_similarity, lex_response, syno_response, get_search_vectors, rexy_response
 from sentence_transformers import SentenceTransformer
 import os
 import psycopg2
@@ -17,8 +17,8 @@ DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_NAME = os.getenv('DB_NAME')
 
 # Load models
-embedder = SentenceTransformer('./ai/embedding/artifacts/fine_tuned_book_embedder')
-lex_path = "./ai/lex_model"
+embedder = SentenceTransformer('./embedding/artifacts/fine_tuned_book_embedder')
+lex_path = "./lex_model"
 
 # Retrieval of all book data
 conn = psycopg2.connect(

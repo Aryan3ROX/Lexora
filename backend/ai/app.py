@@ -25,24 +25,18 @@ conn = psycopg2.connect(
     dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT
 )
 with conn.cursor() as cur:
-    cur.execute("SELECT id, title, author, embedding, summary FROM books;")
+    cur.execute("SELECT id, embedding FROM books;")
     rows = cur.fetchall()
 
 book_ids = []
-titles = []
-authors = []
-summaries = []
 embeddings = []
 for row in rows:
     book_ids.append(row[0])
-    titles.append(row[1])
-    authors.append(row[2])
-    emb = row[3]
+    emb = row[1]
     if isinstance(emb, str):
         emb = ast.literal_eval(emb)
     emb = np.array(emb, dtype=np.float32)
     embeddings.append(emb)
-    summaries.append(row[4] if len(row) > 4 else "")
 embeddings = np.stack(embeddings)
 
 print("Starting app!")
@@ -61,20 +55,24 @@ def search_query(data: dict = Body(...)):
     top_idx = np.argsort(scores)[::-1][:50]
     results = []
     for idx in top_idx:
+        with conn.cursor() as cur:
+            cur.execute("SELECT title, author, cover_image_url FROM books WHERE id = %s", (book_ids[idx],))
+            row = cur.fetchone()
         results.append({
             "id": book_ids[idx],
-            "title": titles[idx],
-            "author": authors[idx],
-            "summary": summaries[idx],
-            "scores": float(scores[idx])
+            "title": row[0],
+            "author": row[1],
+            "cover_image_url": row[2],
+            "score": float(scores[idx])
         })
-    explanations = []
     if use_lex:
         indices = top_idx[:5]
-        explanations = lex_response(lex_path, user_query, titles, authors, summaries, indices)
         for i, idx in enumerate(indices):
-            pos = list(top_idx).index(idx)
-            results[pos]["explanation"] = explanations[i]
+            with conn.cursor() as cur:
+                cur.execute("SELECT title, author, summary FROM books WHERE id = %s", (book_ids[idx],))
+                row = cur.fetchone()
+                explanation = lex_response(lex_path, user_query, row[0], row[1], row[2])
+                results[i]["explanation"] = explanation
     return {"results": results, "top_idx": top_idx.tolist()}
 
 @app.post('/explanations')
@@ -84,15 +82,16 @@ def get_explanations(data: dict = Body(...)):
     start = data["start"]
     end = data["end"]
     indices = top_idx[start:end]
-    explanations = lex_response(lex_path, user_query, titles, authors, summaries, indices)
     results = []
-    for i, idx in enumerate(indices):
-        results.append({
-            "title": titles[idx],
-            "author": authors[idx],
-            "summary": summaries[idx],
-            "explanation": explanations[i]
-        })
+    for idx in indices:
+        with conn.cursor() as cur:
+            cur.execute("SELECT title, author, summary FROM books WHERE id = %s", (book_ids[idx],))
+            row = cur.fetchone()
+            explanation = lex_response(lex_path, user_query, row[0], row[1], row[2])
+            results.append({
+                "id": idx,
+                "explanation": explanation
+            })
     return {"results": results}
 
 @app.post('/synopsis')
@@ -137,4 +136,11 @@ def get_recommendations(data: dict = Body(...)):
     ]
     search_vectors = get_search_vectors(book_data)
     results = rexy_response(search_vectors,book_ids,excluded_ids,embeddings)
+    for res in results:
+        with conn.cursor() as cur:
+            cur.execute("SELECT title, author, cover_image_url FROM books WHERE id = %s", (res["id"],))
+            row = cur.fetchone()
+            res["title"] = row[0]
+            res["author"] = row[1]
+            res["cover_image_url"] = row[2]
     return {"results": results}        

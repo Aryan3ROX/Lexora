@@ -17,8 +17,8 @@ DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_NAME = os.getenv('DB_NAME')
 
-CSV_PATH = 'ai/booksummaries/book_data_clean.csv'
-EMBEDDINGS_PATH = 'ai/embedding/artifacts/embedder/book_embeddings.pt'
+CSV_PATH = 'booksummaries/book_data_clean.csv'
+EMBEDDINGS_PATH = 'embedding/artifacts/embedder/book_embeddings.pt'
 
 print("Loading and aligning data...")
 df_original = pd.read_csv(CSV_PATH)
@@ -132,7 +132,7 @@ try:
             CREATE TABLE IF NOT EXISTS user_books (
                 user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                 book_id INTEGER REFERENCES books(id) ON DELETE CASCADE,
-                status TEXT CHECK (status IN ('read', 'reading', 'plan_to_read', 'no_plan_to_read')),
+                status TEXT CHECK (status IN ('read', 'reading', 'plan_to_read')),
                 rating INTEGER CHECK (rating >= 0 AND rating <= 10),
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (user_id, book_id)

@@ -54,4 +54,20 @@ const get_books = async (req, res) => {
   }
 };
 
-export { get_books };
+const get_book = async (req, res) => {
+  const { book_id } = req.body;
+  try {
+    const result = await pool.query(
+      "SELECT id, title, author, pub_date, genres, cover_image_url, summary FROM books WHERE id = $1",
+      [book_id]
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Fetched Book!", book_data: result.rows });
+  } catch (e) {
+    res.json({ error: "Database Query Error!", e });
+  }
+};
+
+export { get_books, get_book };
